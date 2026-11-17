@@ -1,0 +1,46 @@
+
+name: Build OpenCore for iMac 2012
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Get OpenCore Legacy Patcher
+        uses: actions/checkout@v4
+        with:
+          repository: dortania/OpenCore-Legacy-Patcher
+          ref: 2.5.1
+          path: oclp
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd oclp
+          python3 -m pip install -r requirements.txt
+
+      - name: Build for iMac13,2
+        run: |
+          cd oclp
+          python3 OpenCore-Patcher-GUI.command --build --model iMac13,2 --verbose
+
+      - name: Collect EFI
+        run: |
+          mkdir -p output
+          EFI_DIR=$(find oclp/Build-Folder -type d -name EFI -print -quit)
+          test -n "$EFI_DIR"
+          cp -R "$EFI_DIR" output/EFI
+          test -f output/EFI/OC/config.plist
+
+      - name: Downloadable EFI
+        uses: actions/upload-artifact@v4
+        with:
+          name: iMac13-2-OpenCore
+          path: output/EFI/
